@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 180" fill="none">
+  <!-- Left lens -->
+  <ellipse cx="115" cy="90" rx="70" ry="65" stroke="#663399" stroke-width="6" fill="rgba(102,51,153,0.08)"/>
+  <!-- Right lens -->
+  <ellipse cx="285" cy="90" rx="70" ry="65" stroke="#663399" stroke-width="6" fill="rgba(102,51,153,0.08)"/>
+  <!-- Bridge -->
+  <path d="M185 70 Q200 58 215 70" stroke="#663399" stroke-width="5" fill="none"/>
+  <!-- Left temple -->
+  <line x1="45" y1="70" x2="5" y2="60" stroke="#663399" stroke-width="5" stroke-linecap="round"/>
+  <!-- Right temple -->
+  <line x1="355" y1="70" x2="395" y2="60" stroke="#663399" stroke-width="5" stroke-linecap="round"/>
+</svg>

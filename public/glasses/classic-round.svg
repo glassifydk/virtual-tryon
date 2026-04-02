@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" fill="none">
+  <!-- Left lens -->
+  <circle cx="120" cy="80" r="55" stroke="#1a1a1a" stroke-width="6" fill="rgba(100,140,180,0.15)"/>
+  <!-- Right lens -->
+  <circle cx="280" cy="80" r="55" stroke="#1a1a1a" stroke-width="6" fill="rgba(100,140,180,0.15)"/>
+  <!-- Bridge -->
+  <path d="M175 75 Q200 65 225 75" stroke="#1a1a1a" stroke-width="5" fill="none"/>
+  <!-- Left temple -->
+  <line x1="65" y1="72" x2="5" y2="65" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/>
+  <!-- Right temple -->
+  <line x1="335" y1="72" x2="395" y2="65" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/>
+</svg>

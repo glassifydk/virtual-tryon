@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="da">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Virtual Try-On | Prøv briller virtuelt</title>
+    <link rel="stylesheet" href="/styles/main.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>👓 Virtual Try-On</h1>
+        <p class="subtitle">Prøv vores briller virtuelt med dit webcam eller upload et foto</p>
+      </header>
+
+      <main>
+        <div class="tryon-container">
+          <div class="video-wrapper">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="overlay"></canvas>
+            <div id="loading-indicator" class="hidden">
+              <div class="spinner"></div>
+              <span>Indlæser ansigtsmodel...</span>
+            </div>
+            <div id="no-face-msg" class="hidden">
+              Intet ansigt fundet – kig mod kameraet
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="input-toggle">
+              <button id="btn-webcam" class="toggle-btn active">📷 Webcam</button>
+              <button id="btn-upload" class="toggle-btn">📁 Upload foto</button>
+              <input type="file" id="file-input" accept="image/*" class="hidden" />
+            </div>
+
+            <div class="glasses-section">
+              <h3>Vælg model</h3>
+              <div id="glasses-list" class="glasses-grid">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <div class="adjustments">
+              <h3>Justeringer</h3>
+              <label>
+                Størrelse
+                <input type="range" id="size-slider" min="0.5" max="1.5" step="0.05" value="1.0" />
+              </label>
+              <label>
+                Vertikal position
+                <input type="range" id="vertical-slider" min="-30" max="30" step="1" value="0" />
+              </label>
+            </div>
+
+            <button id="btn-screenshot" class="action-btn">📸 Tag screenshot</button>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <p>Powered by MediaPipe Face Landmarker</p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

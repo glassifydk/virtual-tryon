@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" fill="none">
+  <!-- Left lens -->
+  <path d="M65 55 Q50 30 90 28 L160 40 Q178 42 178 75 Q178 110 120 115 Q62 118 60 80 Z" stroke="#880044" stroke-width="5" fill="rgba(136,0,68,0.1)"/>
+  <!-- Right lens -->
+  <path d="M335 55 Q350 30 310 28 L240 40 Q222 42 222 75 Q222 110 280 115 Q338 118 340 80 Z" stroke="#880044" stroke-width="5" fill="rgba(136,0,68,0.1)"/>
+  <!-- Bridge -->
+  <path d="M178 60 Q200 52 222 60" stroke="#880044" stroke-width="4" fill="none"/>
+  <!-- Left temple -->
+  <line x1="55" y1="55" x2="5" y2="45" stroke="#880044" stroke-width="4" stroke-linecap="round"/>
+  <!-- Right temple -->
+  <line x1="345" y1="55" x2="395" y2="45" stroke="#880044" stroke-width="4" stroke-linecap="round"/>
+</svg>
