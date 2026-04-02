@@ -1,11 +1,12 @@
 import { initFaceDetector, detectFace, detectFaceImage } from "./faceDetector.js";
-import { preloadGlassesImage, renderGlasses } from "./glassesRenderer.js";
+import { initThreeRenderer, setGlassesModel, renderGlasses3D } from "./threeRenderer.js";
 import { GLASSES_CATALOG } from "./glasses.js";
 
 // DOM elements
 const video = document.getElementById("webcam");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
+const threeCanvas = document.getElementById("three-canvas");
 const loadingIndicator = document.getElementById("loading-indicator");
 const noFaceMsg = document.getElementById("no-face-msg");
 const glassesList = document.getElementById("glasses-list");
@@ -18,20 +19,17 @@ const btnScreenshot = document.getElementById("btn-screenshot");
 
 // State
 let selectedGlassesId = GLASSES_CATALOG[0].id;
-let mode = "webcam"; // "webcam" or "photo"
+let mode = "webcam";
 let uploadedImage = null;
 let animationFrameId = null;
 let lastTimestamp = 0;
 
-// --- Initialize ---
-
 async function init() {
   loadingIndicator.classList.remove("hidden");
 
-  // Preload all glasses images
-  await Promise.all(
-    GLASSES_CATALOG.map((g) => preloadGlassesImage(g.id, g.src))
-  );
+  // Init Three.js renderer
+  initThreeRenderer(threeCanvas);
+  setGlassesModel(selectedGlassesId);
 
   // Build glasses selector UI
   buildGlassesUI();
@@ -66,10 +64,10 @@ function buildGlassesUI() {
 
 function selectGlasses(id) {
   selectedGlassesId = id;
+  setGlassesModel(id);
   document.querySelectorAll(".glasses-card").forEach((card, i) => {
     card.classList.toggle("selected", GLASSES_CATALOG[i].id === id);
   });
-  // Re-render photo mode immediately
   if (mode === "photo" && uploadedImage) {
     renderPhotoFrame();
   }
@@ -113,7 +111,6 @@ function requestDetectionLoop() {
 
     const now = performance.now();
     if (now - lastTimestamp < 33) {
-      // cap at ~30 fps
       animationFrameId = requestAnimationFrame(loop);
       return;
     }
@@ -124,12 +121,13 @@ function requestDetectionLoop() {
 
     if (result && result.faceLandmarks && result.faceLandmarks.length > 0) {
       noFaceMsg.classList.add("hidden");
-      renderGlasses(ctx, result.faceLandmarks, selectedGlassesId, {
+      renderGlasses3D(result.faceLandmarks, video.videoWidth, video.videoHeight, {
         scaleFactor: parseFloat(sizeSlider.value),
         verticalOffset: parseInt(verticalSlider.value, 10),
       });
     } else {
       noFaceMsg.classList.remove("hidden");
+      renderGlasses3D(null, video.videoWidth, video.videoHeight);
     }
 
     animationFrameId = requestAnimationFrame(loop);
@@ -162,17 +160,12 @@ function switchToPhoto() {
   btnWebcam.classList.remove("active");
   btnUpload.classList.add("active");
   video.style.display = "none";
-
-  // Render photo onto canvas
-  canvas.style.position = "relative";
-  canvas.style.transform = "scaleX(-1)";
   renderPhotoFrame();
 }
 
 function renderPhotoFrame() {
   if (!uploadedImage) return;
 
-  // Size canvas to image, fitting within the wrapper
   const wrapper = document.querySelector(".video-wrapper");
   const maxW = wrapper.clientWidth;
   const maxH = wrapper.clientHeight || maxW * 0.75;
@@ -195,7 +188,7 @@ function renderPhotoFrame() {
 
   if (result && result.faceLandmarks && result.faceLandmarks.length > 0) {
     noFaceMsg.classList.add("hidden");
-    renderGlasses(ctx, result.faceLandmarks, selectedGlassesId, {
+    renderGlasses3D(result.faceLandmarks, canvas.width, canvas.height, {
       scaleFactor: parseFloat(sizeSlider.value),
       verticalOffset: parseInt(verticalSlider.value, 10),
     });
@@ -210,13 +203,9 @@ function switchToWebcam() {
   btnWebcam.classList.add("active");
   btnUpload.classList.remove("active");
   video.style.display = "block";
-  canvas.style.position = "absolute";
-  canvas.style.transform = "scaleX(-1)";
   noFaceMsg.classList.add("hidden");
   startWebcam();
 }
-
-// --- Adjustments ---
 
 function onAdjustmentChange() {
   if (mode === "photo" && uploadedImage) {
@@ -233,20 +222,19 @@ function takeScreenshot() {
     tempCanvas.width = video.videoWidth;
     tempCanvas.height = video.videoHeight;
     const tempCtx = tempCanvas.getContext("2d");
-    // Mirror the video
     tempCtx.translate(tempCanvas.width, 0);
     tempCtx.scale(-1, 1);
     tempCtx.drawImage(video, 0, 0);
-    // Reset transform and draw overlay
     tempCtx.setTransform(1, 0, 0, 1, 0, 0);
     tempCtx.translate(tempCanvas.width, 0);
     tempCtx.scale(-1, 1);
-    tempCtx.drawImage(canvas, 0, 0);
+    tempCtx.drawImage(threeCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
   } else {
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const tempCtx = tempCanvas.getContext("2d");
     tempCtx.drawImage(canvas, 0, 0);
+    tempCtx.drawImage(threeCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
   }
 
   const link = document.createElement("a");
@@ -255,5 +243,4 @@ function takeScreenshot() {
   link.click();
 }
 
-// Start the app
 init();
