@@ -1,5 +1,5 @@
 import { initFaceDetector, detectFace, detectFaceImage } from "./faceDetector.js";
-import { initThreeRenderer, setGlassesModel, renderGlasses3D } from "./threeRenderer.js";
+import { initThreeRenderer, setGlassesModel, loadGLBModel, renderGlasses3D } from "./threeRenderer.js";
 import { GLASSES_CATALOG } from "./glasses.js";
 
 // DOM elements
@@ -29,6 +29,13 @@ async function init() {
 
   // Init Three.js renderer
   initThreeRenderer(threeCanvas);
+
+  // Preload GLB models
+  const glbModels = GLASSES_CATALOG.filter((g) => g.type === "glb");
+  await Promise.allSettled(
+    glbModels.map((g) => loadGLBModel(g.id, g.glb))
+  );
+
   setGlassesModel(selectedGlassesId);
 
   // Build glasses selector UI
