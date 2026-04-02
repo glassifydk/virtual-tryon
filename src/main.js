@@ -121,13 +121,13 @@ function requestDetectionLoop() {
 
     if (result && result.faceLandmarks && result.faceLandmarks.length > 0) {
       noFaceMsg.classList.add("hidden");
-      renderGlasses3D(result.faceLandmarks, video.videoWidth, video.videoHeight, {
+      renderGlasses3D(result.faceLandmarks, result.facialTransformationMatrixes, video.videoWidth, video.videoHeight, {
         scaleFactor: parseFloat(sizeSlider.value),
         verticalOffset: parseInt(verticalSlider.value, 10),
       });
     } else {
       noFaceMsg.classList.remove("hidden");
-      renderGlasses3D(null, video.videoWidth, video.videoHeight);
+      renderGlasses3D(null, null, video.videoWidth, video.videoHeight);
     }
 
     animationFrameId = requestAnimationFrame(loop);
@@ -188,7 +188,7 @@ function renderPhotoFrame() {
 
   if (result && result.faceLandmarks && result.faceLandmarks.length > 0) {
     noFaceMsg.classList.add("hidden");
-    renderGlasses3D(result.faceLandmarks, canvas.width, canvas.height, {
+    renderGlasses3D(result.faceLandmarks, result.facialTransformationMatrixes, canvas.width, canvas.height, {
       scaleFactor: parseFloat(sizeSlider.value),
       verticalOffset: parseInt(verticalSlider.value, 10),
     });
