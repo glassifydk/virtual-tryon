@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  base: "/virtual-tryon/",
   server: {
     host: true,
     port: 3000,
