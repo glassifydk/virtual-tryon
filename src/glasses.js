@@ -5,6 +5,20 @@ const BASE = import.meta.env.BASE_URL;
 
 export const GLASSES_CATALOG = [
   {
+    id: "meshy-black-rectangle",
+    name: "Sort Rektangulær",
+    src: "/glasses/rectangular.svg",
+    glb: `${BASE}glasses/Meshy_AI_Black_Rectangle_Eyegl_0401152504_generate.glb`,
+    type: "glb",
+  },
+  {
+    id: "meshy-tortoiseshell-rayban",
+    name: "Tortoiseshell Ray-Ban",
+    src: "/glasses/wayfarer.svg",
+    glb: `${BASE}glasses/Meshy_AI_Tortoiseshell_Ray_Ban_0402100838_texture.glb`,
+    type: "glb",
+  },
+  {
     id: "classic-black-oval",
     name: "Classic Oval",
     src: "/glasses/classic-round.svg",
