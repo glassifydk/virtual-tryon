@@ -1,0 +1,814 @@
+{{ 'section-main-cart.css' | asset_url | stylesheet_tag }}
+
+{%- assign main_products_count = 0 -%}
+{%- for item in cart.items -%}
+  {%- if item.properties._is_main_product == 'true' and item.properties._not_a_frame != 'true' -%}
+    {%- assign main_products_count = main_products_count | plus: 1 -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- assign has_subscription_product = false -%}
+{%- for check_item in cart.items -%}
+  {%- if check_item.properties._subscription_product_type != blank -%}
+    {%- assign has_subscription_product = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- assign amount_saved = 0 -%}
+{%- if settings.subscription_discount_percentage != blank -%}
+  {%- for cart_item in cart.items -%}
+    {%- assign is_subscription = false -%}
+    {%- if cart_item.properties._subscription_product_type != blank -%}
+      {%- assign is_subscription = true -%}
+    {%- endif -%}
+    {%- if is_subscription == false and cart_item.original_line_price > 0 -%}
+      {%- assign discount_amount = cart_item.original_line_price | times: settings.subscription_discount_percentage | divided_by: 100 -%}
+      {%- assign amount_saved = amount_saved | plus: discount_amount -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+<script>
+  window.amountSaved = {{ amount_saved }};
+</script>
+
+{%- assign subscription_save_text = "" -%}
+{%- assign subscription_price_text = "" -%}
+
+{% for block in section.blocks %}
+  {% case block.type %}
+    {% when 'subscription-product' %}
+      {%- assign subscription_save_text = block.settings.save_text -%}
+      {%- assign subscription_price_text = block.settings.price_text -%}
+  {% endcase %}
+{% endfor %}
+
+<div
+  class="cart-page {% if cart.item_count == 0 %}cart-is-empty{% endif %}{% if main_products_count == 1 %} fifty-percent-discount{% endif %}"
+  data-cart-items="{{ cart.item_count }}"
+  data-section-id="{{ section.id }}"
+>
+  <div class="cart-page__header">
+    <h1 class="cart-page__title h5">
+      {{- 'cart.title' | t }} (<span data-header-cart-count>
+        {%- assign main_product_count = 0 -%}
+        {%- for item in cart.items -%}
+          {%- if item.properties._is_main_product == 'true' -%}
+            {%- assign main_product_count = main_product_count | plus: 1 -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {{- main_product_count -}}
+      </span>)
+    </h1>
+  </div>
+
+  <div class="cart-page__body">
+    <div class="cart-page__main">
+      <div class="cart-page__items">
+        {%- render 'cart-form', type: 'page', current_section: section, subscription_save_text: subscription_save_text, subscription_price_text: subscription_price_text, subscription_discount_percentage: section.settings.subscription_discount_percentage, subscription_discount_banner_text: section.settings.subscription_discount_banner_text, amount_saved: amount_saved -%}
+      </div>
+
+      {%- if settings.cart_recommendations and section.settings.show_complementary_products == 'yes' -%}
+        {% render 'complementary-products' %}
+      {%- endif -%}
+
+      {%- if settings.cart_notes_enable -%}
+        <div class="cart-instructions hide-if-empty-cart">
+          <div class="form-field">
+            <label for="cartSpecialInstructions">{{ 'cart.note' | t }}</label>
+            <textarea name="note" id="cartSpecialInstructions" form="cart">{{ cart.note }}</textarea>
+          </div>
+        </div>
+      {%- endif -%}
+
+      {% for block in section.blocks %}
+        {% case block.type %}
+          {% when 'subscription-product' %}
+            {%- assign subscription_product_in_cart = false -%}
+            {%- assign subscription_product_varifocal_in_cart = false -%}
+
+            {%- if block.settings.subscription_product != blank -%}
+              {%- for cart_item in cart.items -%}
+                {%- if cart_item.product_id == block.settings.subscription_product.id -%}
+                  {%- assign subscription_product_in_cart = true -%}
+                  {%- break -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+
+            {%- if block.settings.subscription_product_varifocal != blank -%}
+              {%- for cart_item in cart.items -%}
+                {%- if cart_item.product_id == block.settings.subscription_product_varifocal.id -%}
+                  {%- assign subscription_product_varifocal_in_cart = true -%}
+                  {%- break -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+
+            <script src="{{ 'subscription-product.js' | asset_url }}" defer></script>
+
+            {%- assign current_subscription_product = blank -%}
+            {%- assign has_varifocal_template = false -%}
+
+            {%- for cart_item in cart.items -%}
+              {% if cart_item.properties._is_main_product == 'true' %}
+                {% for key in cart_item.properties %}
+                  {% assign first_key = key | first %}
+                  {% assign last_key = key | last %}
+                  {% if first_key == '_template_suffix' %}
+                    {% if last_key == 'varifocal'
+                      or last_key == 'sunglasses-varifocal'
+                      or last_key == 'exchange-varifocal'
+                      or last_key == 'exchange-sunglasses-varifocal'
+                    %}
+                      {% assign has_varifocal_template = true %}
+                      {% break %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              {% if has_varifocal_template %}
+                {% break %}
+              {% endif %}
+            {%- endfor -%}
+
+            {%- if has_varifocal_template and block.settings.subscription_product_varifocal != blank -%}
+              {%- assign current_subscription_product = block.settings.subscription_product_varifocal -%}
+            {%- elsif block.settings.subscription_product != blank -%}
+              {%- assign current_subscription_product = block.settings.subscription_product -%}
+            {%- endif -%}
+
+            <div
+              id="subscription-{{ block.id }}"
+              class="subscription-product {% if subscription_product_in_cart != blank or subscription_product_varifocal_in_cart == true %} hidden{% endif %}"
+              data-has-varifocal="{{ has_varifocal_template }}"
+              {% if block.settings.subscription_product != blank and block.settings.subscription_product.selected_or_first_available_variant != blank %}
+                data-subscription-product-id="{{ block.settings.subscription_product.id }}"
+                data-subscription-variant-id="{{ block.settings.subscription_product.selected_or_first_available_variant.id }}"
+                {% if block.settings.subscription_product.selling_plan_groups.first.selling_plans.first != blank %}
+                  data-subscription-selling-plan-id="{{ block.settings.subscription_product.selling_plan_groups.first.selling_plans.first.id }}"
+                {% endif %}
+                data-subscription-product-title="{{ block.settings.subscription_product.title | escape }}"
+                data-subscription-product-price="{{ block.settings.subscription_product.price }}"
+                data-subscription-product-price-formatted="{{ block.settings.subscription_product.price | money }}"
+                data-subscription-product-description="{{ block.settings.subscription_product.description | strip_html | truncate: 200 | escape }}"
+                data-subscription-product-handle="{{ block.settings.subscription_product.handle }}"
+                data-subscription-product-available="{{ block.settings.subscription_product.available }}"
+                {% if block.settings.subscription_product.metafields.custom.subscription_product_type != blank %}
+                  data-subscription-product-type="{{ block.settings.subscription_product.metafields.custom.subscription_product_type.value | first | downcase }}"
+                {% endif %}
+              {% endif %}
+              {% if block.settings.subscription_product_varifocal != blank and block.settings.subscription_product_varifocal.selected_or_first_available_variant != blank %}
+                data-subscription-varifocal-product-id="{{ block.settings.subscription_product_varifocal.id }}"
+                data-subscription-varifocal-variant-id="{{ block.settings.subscription_product_varifocal.selected_or_first_available_variant.id }}"
+                {% if block.settings.subscription_product_varifocal.selling_plan_groups.first.selling_plans.first != blank %}
+                  data-subscription-varifocal-selling-plan-id="{{ block.settings.subscription_product_varifocal.selling_plan_groups.first.selling_plans.first.id }}"
+                {% endif %}
+                data-subscription-varifocal-product-title="{{ block.settings.subscription_product_varifocal.title | escape }}"
+                data-subscription-varifocal-product-price="{{ block.settings.subscription_product_varifocal.price }}"
+                data-subscription-varifocal-product-price-formatted="{{ block.settings.subscription_product_varifocal.price | money }}"
+                data-subscription-varifocal-product-description="{{ block.settings.subscription_product_varifocal.description | strip_html | truncate: 200 | escape }}"
+                data-subscription-varifocal-product-handle="{{ block.settings.subscription_product_varifocal.handle }}"
+                data-subscription-varifocal-product-available="{{ block.settings.subscription_product_varifocal.available }}"
+                {% if block.settings.subscription_product_varifocal.metafields.custom.subscription_product_type != blank %}
+                  data-subscription-varifocal-product-type="{{ block.settings.subscription_product_varifocal.metafields.custom.subscription_product_type.value | first | downcase }}"
+                {% endif %}
+              {% endif %}
+              {% if current_subscription_product != blank and current_subscription_product.selected_or_first_available_variant != blank %}
+                data-current-product-id="{{ current_subscription_product.id }}"
+                data-current-variant-id="{{ current_subscription_product.selected_or_first_available_variant.id }}"
+                {% if current_subscription_product.selling_plan_groups.first.selling_plans.first != blank %}
+                  data-current-selling-plan-id="{{ current_subscription_product.selling_plan_groups.first.selling_plans.first.id }}"
+                {% endif %}
+                data-current-product-title="{{ current_subscription_product.title | escape }}"
+                data-current-product-price="{{ current_subscription_product.price }}"
+                data-current-product-price-formatted="{{ current_subscription_product.price | money }}"
+                data-current-product-description="{{ current_subscription_product.description | strip_html | truncate: 200 | escape }}"
+                data-current-product-handle="{{ current_subscription_product.handle }}"
+                data-current-product-available="{{ current_subscription_product.available }}"
+                {% if current_subscription_product.metafields.custom.subscription_product_type != blank %}
+                  data-current-product-type="{{ current_subscription_product.metafields.custom.subscription_product_type.value | first | downcase }}"
+                {% endif %}
+              {% endif %}
+              data-save-text="{{ block.settings.save_text | escape }}"
+              data-price-text="{{ block.settings.price_text | escape }}"
+              data-popup-link-text="{{ block.settings.popup_link_text | escape }}"
+              data-button-text="{{ block.settings.button_text | escape }}"
+              data-subtotal-subscription-products-text="{{ block.settings.subtotal_subscription_products_text | escape }}"
+              {{ block.shopify_attributes }}
+            >
+              <div class="subscription-product-content">
+                <div class="subscription-heading">
+                  {% if current_subscription_product != blank and current_subscription_product.title != blank %}
+                    <h3 class="subscription-product-title">{{ current_subscription_product.title }}</h3>
+                  {% endif %}
+
+                  <div class="subscription-product-savings">
+                    {% if block.settings.save_text != blank %}
+                      <div class="subscription-product-save-text">{{ block.settings.save_text }} {{ amount_saved | money }}</div>
+                    {% endif %}
+                    {% if current_subscription_product != blank and current_subscription_product.price != blank %}
+                      <div class="subscription-product-price-text">
+                        {{ current_subscription_product.price | money }}
+                        {% if block.settings.price_text != blank %}
+                          {{ block.settings.price_text }}
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                {% if current_subscription_product != blank and current_subscription_product.description != blank %}
+                  <div class="subscription-product-description">
+                    {{ current_subscription_product.description }}
+                  </div>
+                {% endif %}
+
+                {% if block.settings.popup_link_text != blank %}
+                  <div class="subscription-product-popup-link">{{ block.settings.popup_link_text }}</div>
+                {% endif %}
+
+                {% if current_subscription_product != blank and current_subscription_product.selected_or_first_available_variant != blank and current_subscription_product.selling_plan_groups.first.selling_plans.first != blank %}
+                  <button
+                    class="subscription-product-button"
+                    data-variant-id="{{ current_subscription_product.selected_or_first_available_variant.id }}"
+                    data-selling-plan-id="{{ current_subscription_product.selling_plan_groups.first.selling_plans.first.id }}"
+                    data-subscription-price="{{ current_subscription_product.price }}"
+                    data-subscription-compare-at-price="{{ current_subscription_product.compare_at_price }}"
+                  >
+                    <span class="subscription-button-text">
+                      {{ block.settings.button_text }}
+                    </span>
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+
+          {% when 'fifty_percent_discount' %}
+            <div class="fifty-percent-discount-section" {{ block.shopify_attributes }}>
+              {% if block.settings.discount_image != blank %}
+                <div class="discount-image-container">
+                  <img
+                    src="{{ block.settings.discount_image | image_url }}"
+                    alt="{{ block.settings.discount_image.alt }}"
+                  >
+                </div>
+              {% endif %}
+              <div class="discount-content">
+                {% if block.settings.discount_title != blank %}
+                  <div class="discount-header">
+                    <h3 class="discount-title">{{ block.settings.discount_title }}</h3>
+                    {%- render 'icon-cross' -%}
+                  </div>
+                {% endif %}
+                {% if block.settings.discount_short_text != blank %}
+                  <div class="discount-short-text">{{ block.settings.discount_short_text }}</div>
+                {% endif %}
+                {% if block.settings.discount_long_text != blank %}
+                  <div class="discount-long-text">{{ block.settings.discount_long_text }}</div>
+                {% endif %}
+
+                {% if block.settings.discount_button_text != blank %}
+                  <a href="{{ block.settings.discount_button_url }}" class="discount-button-text">
+                    {{ block.settings.discount_button_text }}
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+        {% endcase %}
+      {% endfor %}
+    </div>
+
+    <div class="cart-page__sidebar">
+      <div class="cart-page__summary hide-if-empty-cart">
+        {%- render 'cart-subtotal', has_subscription_product: has_subscription_product, subscription_discount_percentage: section.settings.subscription_discount_percentage -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% for block in section.blocks %}
+  {% case block.type %}
+    {% when 'diamond_popup' %}
+      <div class="upgrade-diamond-plan-popup" {{ block.shopify_attributes }}>
+        <div class="popup-content">
+          <div class="popup-header">
+            <h2>{{ block.settings.upgrade_protection_plan_popup_title }}</h2>
+            {%- render 'icon-blue-close' -%}
+          </div>
+          <div class="popup-body">
+            {% if block.settings.upgrade_protection_plan_popup_image != blank %}
+              <div class="image-container">
+                <img
+                  src="{{ block.settings.upgrade_protection_plan_popup_image | image_url }}"
+                  alt="{{ block.settings.upgrade_protection_plan_popup_image.alt }}"
+                >
+              </div>
+            {% elsif block.settings.upgrade_protection_plan_popup_video != blank %}
+              <div class="video-container">
+                {% assign poster_image = block.settings.upgrade_protection_plan_popup_video_placeholder_image
+                  | image_url
+                %}
+                {{
+                  block.settings.upgrade_protection_plan_popup_video
+                  | video_tag: autoplay: false, loop: false, controls: false, muted: false, poster: poster_image
+                }}
+                {% render 'icon-play' %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% when 'subscribe_save_popup' %}
+      <div class="subscribe-save-popup display-none" {{ block.shopify_attributes }}>
+        <div class="popup-content">
+          <div class="popup-header">
+            <h2>{{ block.settings.popup_title }}</h2>
+            {%- render 'icon-blue-close' -%}
+          </div>
+          <p class="popup-subtitle">{{ block.settings.popup_subtitle }}</p>
+          <div class="popup-body">
+            <div class="benefits-grid">
+              {% assign number_words = 'one,two,three,four,five,six' | split: ',' %}
+              {% for number_word in number_words %}
+                {% assign image_key = 'image_' | append: number_word %}
+                {% assign text_key = 'text_' | append: number_word %}
+                {% assign image = block.settings[image_key] %}
+                {% assign text = block.settings[text_key] %}
+                {% if image != blank %}
+                  <div class="benefit-item">
+                    <div class="benefit-image">
+                      <img src="{{ image | image_url }}" alt="{{ image.alt }}">
+                    </div>
+                    {% if text != blank %}
+                      <div class="benefit-text">
+                        <p>{{ text }}</p>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          <span class="popup-footer-text">{{ block.settings.popup_footer_text }}</span>
+        </div>
+      </div>
+  {% endcase %}
+{% endfor %}
+
+{% schema %}
+{
+  "name": "Cart Page",
+  "tag": "section",
+  "class": "cart-page-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "free_product_text",
+      "label": "Free product text",
+      "default": "Included"
+    },
+    {
+      "type": "text",
+      "id": "size_text",
+      "label": "Size label text",
+      "default": "Size:"
+    },
+    {
+      "type": "text",
+      "id": "color_text",
+      "label": "Color label text",
+      "default": "Color:"
+    },
+    {
+      "type": "text",
+      "id": "upgrade_protection_plan_text",
+      "label": "Upgrade Protection Plan text",
+      "default": "Upgrade to Diamond Protection Plan"
+    },
+    {
+      "type": "text",
+      "id": "free_banner_text",
+      "label": "Free banner text",
+      "default": "Free"
+    },
+    {
+      "type": "product",
+      "id": "free_product",
+      "label": "Free product"
+    },
+    {
+      "type": "product",
+      "id": "silver_coating",
+      "label": "Silver coating"
+    },
+    {
+      "type": "product",
+      "id": "gold_coating",
+      "label": "Gold coating"
+    },
+    {
+      "type": "product",
+      "id": "diamond_coating",
+      "label": "Diamond coating"
+    },
+    {
+      "type": "text",
+      "id": "complementary_products_title",
+      "label": "Complementary products title",
+      "default": "Buy 1 more frame to get 50% discount on the 2nd"
+    },
+    {
+      "type": "collection",
+      "id": "complementary_product_collection",
+      "label": "Complementary product collection"
+    },
+    {
+      "type": "select",
+      "id": "show_complementary_products",
+      "label": "Show complementary products",
+      "default": "yes",
+      "options": [
+        {
+          "value": "yes",
+          "label": "Yes"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "add_to_cart_button_text",
+      "label": "Add to cart button text",
+      "default": "Add"
+    },
+    {
+      "type": "text",
+      "id": "prescription_title",
+      "label": "Prescription title",
+      "default": "Prescription"
+    },
+    {
+      "type": "text",
+      "id": "sphere_text",
+      "label": "Sphere text",
+      "default": "SPH:"
+    },
+    {
+      "type": "text",
+      "id": "cylinder_text",
+      "label": "Cylinder text",
+      "default": "CYL:"
+    },
+    {
+      "type": "text",
+      "id": "axis_text",
+      "label": "Axis text",
+      "default": "Axis:"
+    },
+    {
+      "type": "text",
+      "id": "add_text",
+      "label": "ADD text",
+      "default": "ADD:"
+    },
+    {
+      "type": "text",
+      "id": "pupil_distance_text",
+      "label": "Pupil distance text",
+      "default": "PD:"
+    },
+    {
+      "type": "text",
+      "id": "birthdate_text",
+      "label": "Birthdate text",
+      "default": "Birthdate:"
+    },
+    {
+      "type": "text",
+      "id": "sub_total_text",
+      "label": "Sub total text",
+      "default": "Sub Total"
+    },
+    {
+      "type": "text",
+      "id": "shipping_text",
+      "label": "Shipping text",
+      "default": "Shipping"
+    },
+    {
+      "type": "text",
+      "id": "free_shipping_badge_text",
+      "label": "Free shipping badge text",
+      "default": "Free"
+    },
+    {
+      "type": "text",
+      "id": "order_total_text",
+      "label": "Order total text",
+      "default": "Order Total"
+    },
+    {
+      "type": "text",
+      "id": "checkout_text",
+      "label": "Checkout text",
+      "default": "Checkout"
+    },
+    {
+      "type": "text",
+      "id": "frame_price_text",
+      "label": "Frame price text",
+      "default": "Frame Price"
+    },
+    {
+      "type": "text",
+      "id": "total_price_text",
+      "label": "Total price text",
+      "default": "Total Price"
+    },
+    {
+      "type": "select",
+      "id": "show_subtotal",
+      "label": "Show or hide subtotal",
+      "default": "show",
+      "options": [
+        {
+          "value": "show",
+          "label": "Show"
+        },
+        {
+          "value": "hide",
+          "label": "Hide"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "show_free_shipping",
+      "label": "Hide or show free shipping",
+      "default": "show",
+      "options": [
+        {
+          "value": "show",
+          "label": "Show"
+        },
+        {
+          "value": "hide",
+          "label": "Hide"
+        }
+      ]
+    },
+    {
+      "type": "image_picker",
+      "id": "payment_methods_image",
+      "label": "Payment methods image"
+    },
+    {
+      "type": "image_picker",
+      "id": "trustpilot_image",
+      "label": "Trustpilot image"
+    },
+    {
+      "type": "text",
+      "id": "learn_more_text",
+      "label": "Learn more text",
+      "default": "Learn More"
+    },
+    {
+      "type": "text",
+      "id": "products_title_text",
+      "label": "Products title text",
+      "default": "Glasses"
+    },
+    {
+      "type": "header",
+      "content": "Subscription Discount"
+    },
+    {
+      "type": "range",
+      "id": "subscription_discount_percentage",
+      "label": "Subscription discount percentage",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "default": 33
+    },
+    {
+      "type": "text",
+      "id": "subscription_discount_banner_text",
+      "label": "Subscription discount banner text",
+      "default": "Cart products have a discount of: "
+    }
+  ],
+  "blocks": [
+    {
+      "type": "fifty_percent_discount",
+      "name": "Fifty Percent Discount",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "discount_image",
+          "label": "Discount image"
+        },
+        {
+          "type": "text",
+          "id": "discount_title",
+          "label": "Discount title",
+          "default": "Buy 1 more frame to get 50% discount on the 2nd"
+        },
+        {
+          "type": "richtext",
+          "id": "discount_short_text",
+          "label": "Discount short text",
+          "default": "<p>Did you know that you can get 50% OFF on the 2nd frame</p>"
+        },
+        {
+          "type": "richtext",
+          "id": "discount_long_text",
+          "label": "Discount long text",
+          "default": "<p>Did you know that you can get 50% OFF on the 2nd frame? This amazing offer allows you to save significantly when purchasing multiple frames from our premium collection. Perfect for getting prescription glasses and sunglasses, or for sharing with family members.</p>"
+        },
+        {
+          "type": "text",
+          "id": "discount_button_text",
+          "label": "Discount button text",
+          "default": "Choose Another Pair"
+        },
+        {
+          "type": "url",
+          "id": "discount_button_url",
+          "label": "Discount button URL"
+        }
+      ]
+    },
+    {
+      "type": "diamond_popup",
+      "name": "Diamond Plan Popup",
+      "settings": [
+        {
+          "type": "text",
+          "id": "upgrade_protection_plan_popup_title",
+          "label": "Upgrade Protection plan popup title",
+          "default": "Diamond Protection Plan"
+        },
+        {
+          "type": "video",
+          "id": "upgrade_protection_plan_popup_video",
+          "label": "Upgrade Protection plan popup video"
+        },
+        {
+          "type": "image_picker",
+          "id": "upgrade_protection_plan_popup_video_placeholder_image",
+          "label": "Upgrade Protection plan popup video placeholder image"
+        },
+        {
+          "type": "image_picker",
+          "id": "upgrade_protection_plan_popup_image",
+          "label": "Upgrade Protection plan popup image"
+        }
+      ]
+    },
+    {
+      "type": "subscribe_save_popup",
+      "name": "Subscribe & Save Popup",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "popup_title",
+          "label": "Popup title",
+          "default": "Subscribe & Save"
+        },
+        {
+          "type": "text",
+          "id": "popup_subtitle",
+          "label": "Popup subtitle"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_one",
+          "label": "Image One"
+        },
+        {
+          "type": "text",
+          "id": "text_one",
+          "label": "Text One",
+          "default": "Benefit One"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_two",
+          "label": "Image Two"
+        },
+        {
+          "type": "text",
+          "id": "text_two",
+          "label": "Text Two",
+          "default": "Benefit Two"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_three",
+          "label": "Image Three"
+        },
+        {
+          "type": "text",
+          "id": "text_three",
+          "label": "Text Three",
+          "default": "Benefit Three"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_four",
+          "label": "Image Four"
+        },
+        {
+          "type": "text",
+          "id": "text_four",
+          "label": "Text Four",
+          "default": "Benefit Four"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_five",
+          "label": "Image Five"
+        },
+        {
+          "type": "text",
+          "id": "text_five",
+          "label": "Text Five",
+          "default": "Benefit Five"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_six",
+          "label": "Image Six"
+        },
+        {
+          "type": "text",
+          "id": "text_six",
+          "label": "Text Six",
+          "default": "Benefit Six"
+        },
+        {
+          "type": "richtext",
+          "id": "popup_footer_text",
+          "label": "Popup footer text"
+        }
+      ]
+    },
+    {
+      "type": "subscription-product",
+      "name": "Subscription Product",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "product",
+          "id": "subscription_product",
+          "label": "Subscription Product"
+        },
+        {
+          "type": "product",
+          "id": "subscription_product_varifocal",
+          "label": "Subscription Product Varifocal"
+        },
+        {
+          "type": "text",
+          "id": "save_text",
+          "label": "Save text",
+          "default": "Spar"
+        },
+        {
+          "type": "text",
+          "id": "price_text",
+          "label": "Price text",
+          "default": "per måned"
+        },
+        {
+          "type": "text",
+          "id": "popup_link_text",
+          "label": "Popup link text",
+          "default": "Læs om alle fordelene her"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "label": "Button text",
+          "default": "Tilvælg & Spar "
+        },
+        {
+          "type": "text",
+          "id": "subtotal_subscription_products_text",
+          "label": "Subtotal subscription products text",
+          "default": "Subscription Product"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
