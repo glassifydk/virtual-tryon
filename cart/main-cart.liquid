@@ -59,7 +59,13 @@
 
           {%- when 'cart-items' -%}
             <div {{ block.shopify_attributes }}>
-              {%- render 'cart-form-page' -%}
+              {%- render 'cart-form',
+                subscription_save_text: subscription_save_text,
+                subscription_price_text: subscription_price_text,
+                subscription_discount_percentage: section.settings.subscription_discount_percentage,
+                subscription_discount_banner_text: section.settings.subscription_discount_banner_text,
+                amount_saved: amount_saved
+              -%}
             </div>
 
           {%- when 'shipping-calculator' -%}
