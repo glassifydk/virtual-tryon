@@ -1,3 +1,5 @@
+{{ 'section-main-cart.css' | asset_url | stylesheet_tag }}
+{{ 'component-cart.css' | asset_url | stylesheet_tag }}
 {{ 'section-cart-page.css' | asset_url | stylesheet_tag }}
 
 {%- assign main_products_count = 0 -%}
@@ -44,47 +46,142 @@
   {% endcase %}
 {% endfor %}
 
-<div
-  class="cart-page {% if cart.item_count == 0 %}cart-is-empty{% endif %}{% if main_products_count == 1 %} fifty-percent-discount{% endif %}"
-  data-cart-items="{{ cart.item_count }}"
-  data-section-id="{{ section.id }}"
->
-  <div class="cart-page__header">
-    <h1 class="cart-page__title h5">
-      {{- 'cart.title' | t }} (<span data-header-cart-count>
-        {%- assign main_product_count = 0 -%}
-        {%- for item in cart.items -%}
-          {%- if item.properties._is_main_product == 'true' -%}
-            {%- assign main_product_count = main_product_count | plus: 1 -%}
-          {%- endif -%}
-        {%- endfor -%}
-        {{- main_product_count -}}
-      </span>)
-    </h1>
-  </div>
+<div class="container--large container--vertical-space">
+  <h1 class="title h2 gutter-bottom--page">{{ 'cart.title' | t }}</h1>
+  <div class="cart-section {% if cart.items.size == 0 %} cart-section--empty {% endif %}{% if main_products_count == 1 %} fifty-percent-discount{% endif %}">
+    <main>
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when '@app' -%}
+            <div class="margin-bottom--regular" {{ block.shopify_attributes }}>
+              {%- render block -%}
+            </div>
 
-  <div class="cart-page__body">
-    <div class="cart-page__main">
-      <div class="cart-page__items">
-        {%- render 'cart-form', type: 'page', current_section: section, subscription_save_text: subscription_save_text, subscription_price_text: subscription_price_text, subscription_discount_percentage: section.settings.subscription_discount_percentage, subscription_discount_banner_text: section.settings.subscription_discount_banner_text, amount_saved: amount_saved -%}
-      </div>
+          {%- when 'cart-items' -%}
+            <div {{ block.shopify_attributes }}>
+              {%- render 'cart-form-page' -%}
+            </div>
 
-      {%- if settings.cart_recommendations and section.settings.show_complementary_products == 'yes' -%}
-        {% render 'complementary-products' %}
-      {%- endif -%}
+          {%- when 'shipping-calculator' -%}
+            <script src="{{ 'shopify_common.js' | shopify_asset_url }}" defer></script>
+            <script src="{{ 'component-shipping-calculator.js' | asset_url }}" defer></script>
+            {{ 'component-shipping-calculator.css' | asset_url | stylesheet_tag }}
 
-      {%- if settings.cart_notes_enable -%}
-        <div class="cart-instructions hide-if-empty-cart">
-          <div class="form-field">
-            <label for="cartSpecialInstructions">{{ 'cart.note' | t }}</label>
-            <textarea name="note" id="cartSpecialInstructions" form="cart">{{ cart.note }}</textarea>
-          </div>
-        </div>
-      {%- endif -%}
+            <shipping-calculator {{ block.shopify_attributes }}>
+              <div class="shipping-calculator cart-block element--has-border--body element--border-radius margin-bottom--regular margin-top--regular">
+                <div class="cart-block__head">
+                  <span>{{ 'cart.shipping_calculator.title' | t }}</span>
+                </div>
 
-      {% for block in section.blocks %}
-        {% case block.type %}
-          {% when 'subscription-product' %}
+                <div class="shipping-calculator__content cart-block__content">
+                  <div class="shipping-calculator__cell">
+                    <label for="country">{{ 'customers.addresses_page.form.country_label' | t }}</label>
+                    <select
+                      name="country"
+                      id="shipping-estimator-country"
+                      data-default="{{ customer.default_address.country | default: section.settings.shipping_estimator_default_country }}"
+                      required
+                    >
+                      {{- country_option_tags -}}
+                    </select>
+                  </div>
+
+                  <div class="shipping-calculator__cell" id="address_province_container" style="display: none">
+                    <label for="province">{{ 'customers.addresses_page.form.province_label' | t }}</label>
+                    <select
+                      name="province"
+                      id="shipping-estimator-province"
+                      data-default="{{ customer.default_address.province }}"
+                    ></select>
+                  </div>
+
+                  <div class="shipping-calculator__cell">
+                    <label for="zip">{{ 'customers.addresses_page.form.zip_label' | t }}</label>
+                    <input
+                      type="text"
+                      name="zip"
+                      id="shipping-estimator-zip"
+                      class="form__field form__field--text"
+                      value="{{ customer.default.address.zip }}"
+                      required
+                    >
+                  </div>
+
+                  <div class="shipping-calculator__cell">
+                    <button
+                      type="submit"
+                      data-action="estimate-shipping"
+                      class="button button--outline button--regular js-estimate-shipping"
+                    >
+                      {{ 'cart.shipping_calculator.form_button_label' | t }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="gutter--regular shipping-estimator__results" style="display: none;">
+                  <div class="alert alert--error"></div>
+
+                  <div class="shipping-estimator__results-content" style="display: none;">
+                    <span class="shipping-estimator__results-content-heading text-size--regular"></span>
+                    <ul class="shipping-estimator__results-content-list"></ul>
+                  </div>
+                </div>
+              </div>
+            </shipping-calculator>
+
+          {%- when 'related-items' -%}
+            <product-recommendations
+              {{ block.shopify_attributes }}
+              id="cart-recommendations"
+              data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ cart.items[0].product_id }}&limit={{ block.settings.products_number }}"
+            >
+              {%- if recommendations.performed and recommendations.products_count > 0 -%}
+                <div class="cart-product-recommendations">
+                  <div class="cart-holder cart-block cart-block__item--spacing element--has-border--body element--border-radius margin-bottom--regular">
+                    <div class="cart-block__head">
+                      <span>{{ block.settings.title | escape }}</span>
+                    </div>
+
+                    {%- for product in recommendations.products -%}
+                      <div class="product-related-item" data-js-product-item>
+                        <a
+                          href="{{ product.url }}"
+                          class="product-related-item__image element--border-width-clamped element--border-radius"
+                        >
+                          {%- render 'lazy-image-small',
+                            image: product.featured_media,
+                            aspect_ratio: settings.cart_image_ratio,
+                            fit: settings.cart_image_fit
+                          -%}
+                        </a>
+
+                        <div class="product-related-item__text">
+                          <a
+                            class="product-related-item__title text-size--large text-weight--bold"
+                            href="{{ product.url }}"
+                          >
+                            <span class="text-animation--underline-thin">{{ product.title | escape }}</span>
+                          </a>
+                          <span class="product-related-item__price">
+                            {%- render 'product-price',
+                              variant: product.selected_or_first_available_variant,
+                              target: product.selected_or_first_available_variant,
+                              product_price_varies: product.price_varies
+                            -%}
+                          </span>
+                        </div>
+
+                        <div class="product-related-item__button">
+                          {%- render 'quick-buy', product: product, button_classes: 'button--small' -%}
+                        </div>
+                      </div>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- endif -%}
+            </product-recommendations>
+
+          {%- when 'subscription-product' -%}
             {%- assign subscription_product_in_cart = false -%}
             {%- assign subscription_product_varifocal_in_cart = false -%}
 
@@ -203,7 +300,6 @@
                   {% if current_subscription_product != blank and current_subscription_product.title != blank %}
                     <h3 class="subscription-product-title">{{ current_subscription_product.title }}</h3>
                   {% endif %}
-
                   <div class="subscription-product-savings">
                     {% if block.settings.save_text != blank %}
                       <div class="subscription-product-save-text">{{ block.settings.save_text }} {{ amount_saved | money }}</div>
@@ -211,24 +307,17 @@
                     {% if current_subscription_product != blank and current_subscription_product.price != blank %}
                       <div class="subscription-product-price-text">
                         {{ current_subscription_product.price | money }}
-                        {% if block.settings.price_text != blank %}
-                          {{ block.settings.price_text }}
-                        {% endif %}
+                        {% if block.settings.price_text != blank %}{{ block.settings.price_text }}{% endif %}
                       </div>
                     {% endif %}
                   </div>
                 </div>
-
                 {% if current_subscription_product != blank and current_subscription_product.description != blank %}
-                  <div class="subscription-product-description">
-                    {{ current_subscription_product.description }}
-                  </div>
+                  <div class="subscription-product-description">{{ current_subscription_product.description }}</div>
                 {% endif %}
-
                 {% if block.settings.popup_link_text != blank %}
                   <div class="subscription-product-popup-link">{{ block.settings.popup_link_text }}</div>
                 {% endif %}
-
                 {% if current_subscription_product != blank and current_subscription_product.selected_or_first_available_variant != blank and current_subscription_product.selling_plan_groups.first.selling_plans.first != blank %}
                   <button
                     class="subscription-product-button"
@@ -237,22 +326,17 @@
                     data-subscription-price="{{ current_subscription_product.price }}"
                     data-subscription-compare-at-price="{{ current_subscription_product.compare_at_price }}"
                   >
-                    <span class="subscription-button-text">
-                      {{ block.settings.button_text }}
-                    </span>
+                    <span class="subscription-button-text">{{ block.settings.button_text }}</span>
                   </button>
                 {% endif %}
               </div>
             </div>
 
-          {% when 'fifty_percent_discount' %}
+          {%- when 'fifty_percent_discount' -%}
             <div class="fifty-percent-discount-section" {{ block.shopify_attributes }}>
               {% if block.settings.discount_image != blank %}
                 <div class="discount-image-container">
-                  <img
-                    src="{{ block.settings.discount_image | image_url }}"
-                    alt="{{ block.settings.discount_image.alt }}"
-                  >
+                  <img src="{{ block.settings.discount_image | image_url }}" alt="{{ block.settings.discount_image.alt }}">
                 </div>
               {% endif %}
               <div class="discount-content">
@@ -268,23 +352,19 @@
                 {% if block.settings.discount_long_text != blank %}
                   <div class="discount-long-text">{{ block.settings.discount_long_text }}</div>
                 {% endif %}
-
                 {% if block.settings.discount_button_text != blank %}
-                  <a href="{{ block.settings.discount_button_url }}" class="discount-button-text">
-                    {{ block.settings.discount_button_text }}
-                  </a>
+                  <a href="{{ block.settings.discount_button_url }}" class="discount-button-text">{{ block.settings.discount_button_text }}</a>
                 {% endif %}
               </div>
             </div>
-        {% endcase %}
-      {% endfor %}
-    </div>
 
-    <div class="cart-page__sidebar">
-      <div class="cart-page__summary hide-if-empty-cart">
-        {%- render 'cart-subtotal', has_subscription_product: has_subscription_product, subscription_discount_percentage: section.settings.subscription_discount_percentage -%}
-      </div>
-    </div>
+        {%- endcase -%}
+      {%- endfor -%}
+    </main>
+
+    <aside>
+      {%- render 'cart-subtotal', type: 'page', has_subscription_product: has_subscription_product, subscription_discount_percentage: section.settings.subscription_discount_percentage -%}
+    </aside>
   </div>
 </div>
 
@@ -300,20 +380,12 @@
           <div class="popup-body">
             {% if block.settings.upgrade_protection_plan_popup_image != blank %}
               <div class="image-container">
-                <img
-                  src="{{ block.settings.upgrade_protection_plan_popup_image | image_url }}"
-                  alt="{{ block.settings.upgrade_protection_plan_popup_image.alt }}"
-                >
+                <img src="{{ block.settings.upgrade_protection_plan_popup_image | image_url }}" alt="{{ block.settings.upgrade_protection_plan_popup_image.alt }}">
               </div>
             {% elsif block.settings.upgrade_protection_plan_popup_video != blank %}
               <div class="video-container">
-                {% assign poster_image = block.settings.upgrade_protection_plan_popup_video_placeholder_image
-                  | image_url
-                %}
-                {{
-                  block.settings.upgrade_protection_plan_popup_video
-                  | video_tag: autoplay: false, loop: false, controls: false, muted: false, poster: poster_image
-                }}
+                {% assign poster_image = block.settings.upgrade_protection_plan_popup_video_placeholder_image | image_url %}
+                {{ block.settings.upgrade_protection_plan_popup_video | video_tag: autoplay: false, loop: false, controls: false, muted: false, poster: poster_image }}
                 {% render 'icon-play' %}
               </div>
             {% endif %}
@@ -342,9 +414,7 @@
                       <img src="{{ image | image_url }}" alt="{{ image.alt }}">
                     </div>
                     {% if text != blank %}
-                      <div class="benefit-text">
-                        <p>{{ text }}</p>
-                      </div>
+                      <div class="benefit-text"><p>{{ text }}</p></div>
                     {% endif %}
                   </div>
                 {% endif %}
@@ -359,253 +429,94 @@
 
 {% schema %}
 {
-  "name": "Cart Page",
-  "tag": "section",
-  "class": "cart-page-section",
-  "settings": [
-    {
-      "type": "text",
-      "id": "free_product_text",
-      "label": "Free product text",
-      "default": "Included"
-    },
-    {
-      "type": "text",
-      "id": "size_text",
-      "label": "Size label text",
-      "default": "Size:"
-    },
-    {
-      "type": "text",
-      "id": "color_text",
-      "label": "Color label text",
-      "default": "Color:"
-    },
-    {
-      "type": "text",
-      "id": "upgrade_protection_plan_text",
-      "label": "Upgrade Protection Plan text",
-      "default": "Upgrade to Diamond Protection Plan"
-    },
-    {
-      "type": "text",
-      "id": "free_banner_text",
-      "label": "Free banner text",
-      "default": "Free"
-    },
-    {
-      "type": "product",
-      "id": "free_product",
-      "label": "Free product"
-    },
-    {
-      "type": "product",
-      "id": "silver_coating",
-      "label": "Silver coating"
-    },
-    {
-      "type": "product",
-      "id": "gold_coating",
-      "label": "Gold coating"
-    },
-    {
-      "type": "product",
-      "id": "diamond_coating",
-      "label": "Diamond coating"
-    },
-    {
-      "type": "text",
-      "id": "complementary_products_title",
-      "label": "Complementary products title",
-      "default": "Buy 1 more frame to get 50% discount on the 2nd"
-    },
-    {
-      "type": "collection",
-      "id": "complementary_product_collection",
-      "label": "Complementary product collection"
-    },
-    {
-      "type": "select",
-      "id": "show_complementary_products",
-      "label": "Show complementary products",
-      "default": "yes",
-      "options": [
-        {
-          "value": "yes",
-          "label": "Yes"
-        },
-        {
-          "value": "no",
-          "label": "No"
-        }
-      ]
-    },
-    {
-      "type": "text",
-      "id": "add_to_cart_button_text",
-      "label": "Add to cart button text",
-      "default": "Add"
-    },
-    {
-      "type": "text",
-      "id": "prescription_title",
-      "label": "Prescription title",
-      "default": "Prescription"
-    },
-    {
-      "type": "text",
-      "id": "sphere_text",
-      "label": "Sphere text",
-      "default": "SPH:"
-    },
-    {
-      "type": "text",
-      "id": "cylinder_text",
-      "label": "Cylinder text",
-      "default": "CYL:"
-    },
-    {
-      "type": "text",
-      "id": "axis_text",
-      "label": "Axis text",
-      "default": "Axis:"
-    },
-    {
-      "type": "text",
-      "id": "add_text",
-      "label": "ADD text",
-      "default": "ADD:"
-    },
-    {
-      "type": "text",
-      "id": "pupil_distance_text",
-      "label": "Pupil distance text",
-      "default": "PD:"
-    },
-    {
-      "type": "text",
-      "id": "birthdate_text",
-      "label": "Birthdate text",
-      "default": "Birthdate:"
-    },
-    {
-      "type": "text",
-      "id": "sub_total_text",
-      "label": "Sub total text",
-      "default": "Sub Total"
-    },
-    {
-      "type": "text",
-      "id": "shipping_text",
-      "label": "Shipping text",
-      "default": "Shipping"
-    },
-    {
-      "type": "text",
-      "id": "free_shipping_badge_text",
-      "label": "Free shipping badge text",
-      "default": "Free"
-    },
-    {
-      "type": "text",
-      "id": "order_total_text",
-      "label": "Order total text",
-      "default": "Order Total"
-    },
-    {
-      "type": "text",
-      "id": "checkout_text",
-      "label": "Checkout text",
-      "default": "Checkout"
-    },
-    {
-      "type": "text",
-      "id": "frame_price_text",
-      "label": "Frame price text",
-      "default": "Frame Price"
-    },
-    {
-      "type": "text",
-      "id": "total_price_text",
-      "label": "Total price text",
-      "default": "Total Price"
-    },
-    {
-      "type": "select",
-      "id": "show_subtotal",
-      "label": "Show or hide subtotal",
-      "default": "show",
-      "options": [
-        {
-          "value": "show",
-          "label": "Show"
-        },
-        {
-          "value": "hide",
-          "label": "Hide"
-        }
-      ]
-    },
-    {
-      "type": "select",
-      "id": "show_free_shipping",
-      "label": "Hide or show free shipping",
-      "default": "show",
-      "options": [
-        {
-          "value": "show",
-          "label": "Show"
-        },
-        {
-          "value": "hide",
-          "label": "Hide"
-        }
-      ]
-    },
-    {
-      "type": "image_picker",
-      "id": "payment_methods_image",
-      "label": "Payment methods image"
-    },
-    {
-      "type": "image_picker",
-      "id": "trustpilot_image",
-      "label": "Trustpilot image"
-    },
-    {
-      "type": "text",
-      "id": "learn_more_text",
-      "label": "Learn more text",
-      "default": "Learn More"
-    },
-    {
-      "type": "text",
-      "id": "products_title_text",
-      "label": "Products title text",
-      "default": "Glasses"
-    },
-    {
-      "type": "header",
-      "content": "Subscription Discount"
-    },
-    {
-      "type": "range",
-      "id": "subscription_discount_percentage",
-      "label": "Subscription discount percentage",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "unit": "%",
-      "default": 33
-    },
-    {
-      "type": "text",
-      "id": "subscription_discount_banner_text",
-      "label": "Subscription discount banner text",
-      "default": "Cart products have a discount of: "
-    }
-  ],
+  "name": "t:settings_schema.cart-page.name",
   "blocks": [
+    {
+      "type": "cart-items",
+      "limit": 1,
+      "name": "t:sections.main-cart-items.name"
+    },
+    {
+      "type": "shipping-calculator",
+      "limit": 1,
+      "name": "t:sections.local-extra-words.sections.main-cart.blocks.shipping-calculator.name"
+    },
+    {
+      "type": "related-items",
+      "limit": 1,
+      "name": "t:sections.local-extra-words.sections.main-product.blocks.related.name",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.local-extra-words.sections.main-cart.blocks.related-products.info"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.local-extra-words.sections.headings.title",
+          "default": "Related products"
+        },
+        {
+          "type": "range",
+          "id": "products_number",
+          "label": "t:sections.featured-collection.settings.products_number.label",
+          "min": 1,
+          "max": 6,
+          "step": 1,
+          "default": 3
+        }
+      ]
+    },
+    {
+      "type": "@app"
+    },
+    {
+      "type": "subscription-product",
+      "name": "Subscription Product",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "product",
+          "id": "subscription_product",
+          "label": "Subscription Product"
+        },
+        {
+          "type": "product",
+          "id": "subscription_product_varifocal",
+          "label": "Subscription Product Varifocal"
+        },
+        {
+          "type": "text",
+          "id": "save_text",
+          "label": "Save text",
+          "default": "Spar"
+        },
+        {
+          "type": "text",
+          "id": "price_text",
+          "label": "Price text",
+          "default": "per måned"
+        },
+        {
+          "type": "text",
+          "id": "popup_link_text",
+          "label": "Popup link text",
+          "default": "Læs om alle fordelene her"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "label": "Button text",
+          "default": "Tilvælg & Spar"
+        },
+        {
+          "type": "text",
+          "id": "subtotal_subscription_products_text",
+          "label": "Subtotal subscription products text",
+          "default": "Subscription Product"
+        }
+      ]
+    },
     {
       "type": "fifty_percent_discount",
       "name": "Fifty Percent Discount",
@@ -631,7 +542,7 @@
           "type": "richtext",
           "id": "discount_long_text",
           "label": "Discount long text",
-          "default": "<p>Did you know that you can get 50% OFF on the 2nd frame? This amazing offer allows you to save significantly when purchasing multiple frames from our premium collection. Perfect for getting prescription glasses and sunglasses, or for sharing with family members.</p>"
+          "default": "<p>Did you know that you can get 50% OFF on the 2nd frame?</p>"
         },
         {
           "type": "text",
@@ -761,53 +672,28 @@
           "label": "Popup footer text"
         }
       ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "header",
+      "content": "Subscription Discount"
     },
     {
-      "type": "subscription-product",
-      "name": "Subscription Product",
-      "limit": 1,
-      "settings": [
-        {
-          "type": "product",
-          "id": "subscription_product",
-          "label": "Subscription Product"
-        },
-        {
-          "type": "product",
-          "id": "subscription_product_varifocal",
-          "label": "Subscription Product Varifocal"
-        },
-        {
-          "type": "text",
-          "id": "save_text",
-          "label": "Save text",
-          "default": "Spar"
-        },
-        {
-          "type": "text",
-          "id": "price_text",
-          "label": "Price text",
-          "default": "per måned"
-        },
-        {
-          "type": "text",
-          "id": "popup_link_text",
-          "label": "Popup link text",
-          "default": "Læs om alle fordelene her"
-        },
-        {
-          "type": "text",
-          "id": "button_text",
-          "label": "Button text",
-          "default": "Tilvælg & Spar "
-        },
-        {
-          "type": "text",
-          "id": "subtotal_subscription_products_text",
-          "label": "Subtotal subscription products text",
-          "default": "Subscription Product"
-        }
-      ]
+      "type": "range",
+      "id": "subscription_discount_percentage",
+      "label": "Subscription discount percentage",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "default": 33
+    },
+    {
+      "type": "text",
+      "id": "subscription_discount_banner_text",
+      "label": "Subscription discount banner text",
+      "default": "Cart products have a discount of: "
     }
   ]
 }
